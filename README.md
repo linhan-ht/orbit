@@ -1,64 +1,37 @@
-# Empyr
+# Orbit
 
-> An AI agent that knows your work, calls your APIs, and delivers what you need.
+> Your AI work companion — asks questions, calls APIs, delivers insights.
 
-## What is Empyr?
+Orbit is an enterprise AI agent built on OpenClaw, tailored to your company's systems and workflows. Instead of a generic chatbot, it understands *who you are*, *what you do*, and connects to the APIs that matter to your job — returning formatted, useful outputs right where you work.
 
-Empyr is an enterprise AI agent built on OpenClaw, designed for internal employee use. Instead of a generic chatbot, it's tailored to your company's systems, APIs, and workflows — enabling anyone to get answers, pull reports, and query data through natural language.
+## What can it do?
 
-## Core Features
+- **Ask in plain language** — "Show me open VOU tickets about search performance"
+- **Get answers, not links** — Orbit queries Jira, AWS, monitoring, and more — then formats the result for you
+- **Output adapts to the data** — Tables, charts, dashboards, downloadable CSV/Excel — Orbit picks the right format
+- **Available everywhere** — WeChat, Zoom, Web, or any OpenClaw-supported channel
 
-### 🔐 Enterprise Auth
-- **Okta OAuth** integration — employees authenticate once, agent acts on their behalf
-- Token management handled securely via OpenClaw credential system
-- No additional login required after initial Okta connection
-
-### 📡 API Integration Layer
-- Agent understands user intent and routes requests to the right backend API
-- Works with any REST API (Jira, internal services, databases)
-- Returns structured data in JSON
-
-### 📊 Output Generation
-- **HTML Dashboard** — interactive charts and KPIs
-- **CSV / Excel** — downloadable reports
-- Output format determined by data type and user context
-
-### 💬 Multi-Channel Access
-- Works via WeChat, Zoom, Web, or any OpenClaw-supported channel
-- Remembers conversation context across sessions
-- Shares outputs natively in the channel where you ask
-
-## Architecture
+## How it works
 
 ```
-Employee (any channel)
-       ↓
-  OpenClaw Agent (Empyr brain)
-       ↓
-  Okta Token Manager (credential helper)
-       ↓
-  Company Backend APIs
-       ↓
-  Response Formatter → Dashboard / CSV / Excel
+You → Natural language question
+  ↓
+OpenClaw routes to Orbit agent
+  ↓
+Okta Auth (your token, your permissions)
+  ↓
+API Router (calls the right backend)
+  ↓
+Output Renderer (formats result as Dashboard / CSV / Excel)
+  ↓
+You receive a clear, actionable answer
 ```
-
-## Quick Start
-
-> Coming soon
-
-## Use Cases
-
-- **"How many VOU tickets mention slow search?"** → Jira query → Dashboard
-- **"Show me this month's infrastructure costs by team"** → AWS/EKS API → Interactive CSV
-- **"What's our deployment process for production?"** → Knowledge base → Formatted answer
-- **"Any active alerts firing right now?"** → Monitoring API → Instant status
-
-## Tech Stack
-
-- **OpenClaw** — agent runtime and multi-channel gateway
-- **Okta** — enterprise identity provider
-- **Custom skill plugins** — Okta auth helper, API router, dashboard renderer
 
 ## Status
 
-🟡 Early development — foundation being built
+🟡 **Phase 0** — Foundation building. See [PLANNING.md](./PLANNING.md) for the full roadmap.
+
+## Quick Links
+
+- [Project Plan](./PLANNING.md)
+- [GitHub Issues](https://github.com/linhan-ht/orbit/issues) — bug reports, feature requests
