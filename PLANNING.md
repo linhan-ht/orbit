@@ -168,6 +168,9 @@ User asks a question in natural language. Orbit determines:
 - Is this a lookup in a database? → Call API, format result
 - Does this need input from a colleague? → Route to the right person
 
+**Handling unknown terminology:**
+When Orbit encounters an internal term it doesn't recognize, it queries the company glossary first before routing. If the term is still unknown, Orbit asks the user for clarification rather than guessing.
+
 ### 6.2 Request → Get Approval
 
 When a task requires human authorization (approval, sign-off, judgment):
@@ -193,6 +196,101 @@ When relevant things happen (your approval is needed, a request you made has bee
 - Orbit proactively notifies the right person
 - Message includes context: what happened, what's needed, what happens next
 - One-tap actions where possible: "Approve" / "Reject" / "Learn More"
+
+---
+
+## 6.4 Personal Knowledge Fragments
+
+Employees generate valuable knowledge through daily conversations with Orbit. These fragments should be captured, reusable, and shareable.
+
+**What gets captured:**
+- Conclusions reached during chat sessions
+- Important decisions and their context
+- Tips discovered through troubleshooting
+
+**Fragment data model:**
+```json
+{
+  "id": "fragment_xxx",
+  "author": "user_A",
+  "content": "关于XXX的结论是...",
+  "tags": ["billing", "aws", "cost"],
+  "visibility": "private | shared",
+  "shared_to": null,
+  "source": "chat_summary | manual | skill_generated",
+  "created_at": "...",
+  "used_count": 3,
+  "reminders": []
+}
+```
+
+**Three levels of visibility:**
+| Level | Who can see | Who can use |
+|-------|------------|-------------|
+| **Private** | Author only | Author only |
+| **Shared** | Anyone in company | Anyone, credited to author |
+| **Published as Skill** | Everyone | Via Skills routing |
+
+**When shared fragments are referenced:**
+Other users encounter related questions → RAG router searches company Skills first, then shared fragments → Response notes: "This insight is from user A's practice in a similar scenario."
+
+### 6.5 Scheduled Reminders
+
+Reminders are independent of fragments — users set them directly without needing to save anything to knowledge base.
+
+**Reminder types:**
+| Type | Example | Trigger |
+|------|---------|---------|
+| **Text-only** | "每周五下午3点提醒我做周报" | Push notification at scheduled time |
+| **Skill-triggered** | "每天早上9点帮我跑一遍 infra cost 报告" | Execute Skill, deliver output to user |
+
+**Reminder data model:**
+```json
+{
+  "id": "reminder_xxx",
+  "user_id": "user_A",
+  "cron": "0 15 * * 5",
+  "message": "做周报",
+  "skill_id": null,
+  "next_trigger": "2026-05-23T15:00:00Z",
+  "is_active": true
+}
+```
+
+### 6.6 Glossary & Unknown Term Handling
+
+Router maintains a **glossary table** for company-specific terminology. When an unknown term is encountered, Router queries the glossary before attempting to route.
+
+**Glossary data model:**
+```sql
+CREATE TABLE glossary (
+  id              UUID PRIMARY KEY,
+  term           TEXT NOT NULL UNIQUE,
+  definition     TEXT NOT NULL,
+  examples       TEXT[],
+  related_skills UUID[],
+  created_by     UUID,
+  created_at     TIMESTAMP,
+  updated_at     TIMESTAMP
+);
+CREATE INDEX idx_glossary_term ON glossary USING gin(to_tsvector('simple', term));
+```
+
+**Router flow with glossary:**
+```
+User：「VOU-123 现在卡在哪一步了？」
+    ↓
+Router sees "VOU" → not in current context
+    ↓
+Router queries glossary: SELECT definition, related_skills FROM glossary WHERE term = 'VOU'
+    ↓
+得到：「VOU = Voice of Users，相关 Skill: jira_tracker」
+    ↓
+Router continues normal routing to jira_tracker Skill
+```
+
+**If term is not in glossary:**
+Orbit responds: "I don't know what VOU means. Can you explain?" — rather than guessing or misrouting.
 
 ---
 
@@ -237,6 +335,34 @@ When relevant things happen (your approval is needed, a request you made has bee
 ---
 
 **Note:** OpenClaw is a reference architecture and design inspiration for Orbit — Orbit is independently deployed and maintained, not a plugin or extension of OpenClaw.
+
+## 7.1 Data Storage
+
+Orbit uses three storage layers, each chosen for the right use case:
+
+| Data | Storage | Why |
+|------|---------|-----|
+| Skills registry, glossary, users, fragments, reminders, audit logs | **PostgreSQL** | Complex relational queries, schema enforcement, company data needs ACID |
+| Reminder job queue (sorted by next trigger time) | **Redis** | Native sorted set support for cron-like scheduling, high throughput |
+| Skill definition files (YAML/JSON) | **S3 / Filesystem** | Git-ifiable, human-readable, version controlled |
+
+**Why PostgreSQL over MongoDB:**
+Orbit's data has deep relationships — Skills reference glossary terms, fragments reference Skills, users own Skills with role-based permissions. Relational modeling with PostgreSQL is the natural fit. MongoDB's document flexibility is not worth the weak join performance and limited cross-collection transaction support.
+
+**PostgreSQL schema highlights:**
+```sql
+-- Core tables
+glossary(id, term, definition, examples, related_skills, created_by, created_at)
+skills(id, name, description, intent, trigger_patterns, owner, file_path, version, is_active)
+skill_dependencies(id, skill_id, depends_on, condition)
+fragments(id, author, content, tags, visibility, source, used_count)
+reminders(id, user_id, cron, message, skill_id, next_trigger, is_active)
+users(id, name, email, role, created_at)
+audit_logs(id, user_id, action, skill_id, details, created_at)
+```
+
+**Redis for reminders:**
+Redis sorted set: `score = next_trigger_timestamp`, `member = reminder_id`. A lightweight worker polls every minute, triggers due reminders, reschedules recurring ones.
 
 ## 8. Security Model
 
