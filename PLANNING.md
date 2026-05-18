@@ -8,9 +8,11 @@
 
 ## 1. What is Orbit?
 
-Orbit is an enterprise AI agent built on OpenClaw. It serves as an **intelligent workflow router and executor** — understanding what employees need, calling the right APIs or colleagues, and delivering results in the right format.
+Orbit is an enterprise AI agent — a standalone service that, like OpenClaw, serves as an **intelligent workflow router and executor**. It understands what employees need, calls the right APIs or colleagues, and delivers results in the right format.
 
 Unlike a generic chatbot, Orbit is tailored to your company's systems, APIs, and people — connecting questions to answers, requests to approvers, and problems to owners.
+
+**OpenClaw is a reference and inspiration — Orbit is an independent, parallel project with its own codebase, not an extension or plugin of OpenClaw.**
 
 ---
 
@@ -199,14 +201,14 @@ When relevant things happen (your approval is needed, a request you made has bee
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Employee Channel                          │
-│              (WeChat / Zoom / Web / any OpenClaw channel)       │
+│              (WeChat / Zoom / Web / any messaging platform)     │
 └────────────────────────────┬────────────────────────────────────┘
                              │
 ┌────────────────────────────▼────────────────────────────────────┐
-│                      OpenClaw Gateway                            │
+│                      Orbit Gateway                               │
 │  ┌───────────┐  ┌────────────┐  ┌────────────────────────────┐  │
-│  │  Channel  │  │   Memory   │  │    Skill Framework        │  │
-│  │  Router   │  │   System   │  │                            │  │
+│  │  Channel  │  │   Memory   │  │    Skill Framework          │  │
+│  │  Adapter  │  │   System   │  │                            │  │
 │  └───────────┘  └────────────┘  └────────────────────────────┘  │
 └────────────────────────────┬────────────────────────────────────┘
                              │
@@ -232,9 +234,9 @@ When relevant things happen (your approval is needed, a request you made has bee
 │  (Credential     │ │ (Jira, AWS, │ │  (in-channel        │
 │   Helper)        │ │  Confluence)│ │   approve/reject)    │
 └─────────────────┘ └──────────────┘ └───────────────────────┘
-```
-
 ---
+
+**Note:** OpenClaw is a reference architecture and design inspiration for Orbit — Orbit is independently deployed and maintained, not a plugin or extension of OpenClaw.
 
 ## 8. Security Model
 
@@ -257,7 +259,7 @@ Orbit acts with **the employee's own permissions** — nothing more.
 ### Phase 0 — Foundation (Week 1)
 **Goal:** End-to-end demo with one real API (Jira), Okta auth, and formatted output
 
-- [ ] Set up OpenClaw skill structure for Orbit
+- [ ] Set up Orbit core service structure (gateway, channel adapters, skill runtime)
 - [ ] Implement Okta Auth Skill (PKCE flow, Credential Helper)
 - [ ] Implement Jira API Skill (read tickets, search, status)
 - [ ] Basic JSON → formatted table output (WeChat)
