@@ -264,14 +264,17 @@ Router maintains a **glossary table** for company-specific terminology. When an 
 **Glossary data model:**
 ```sql
 CREATE TABLE glossary (
-  id              UUID PRIMARY KEY,
-  term           TEXT NOT NULL UNIQUE,
-  definition     TEXT NOT NULL,
-  examples       TEXT[],
-  related_skills UUID[],
-  created_by     UUID,
-  created_at     TIMESTAMP,
-  updated_at     TIMESTAMP
+  id               UUID PRIMARY KEY,
+  term            TEXT NOT NULL UNIQUE,
+  definition      TEXT NOT NULL,
+  disambiguation  TEXT,              -- for terms that share name with general knowledge
+  general_definition TEXT,            -- what the term means in non-company context
+  aliases         TEXT[],             -- common misspellings and variations
+  examples        TEXT[],
+  related_skills  UUID[],
+  created_by      UUID,
+  created_at      TIMESTAMP,
+  updated_at      TIMESTAMP
 );
 CREATE INDEX idx_glossary_term ON glossary USING gin(to_tsvector('simple', term));
 ```
@@ -291,6 +294,25 @@ Router continues normal routing to jira_tracker Skill
 
 **If term is not in glossary:**
 Orbit responds: "I don't know what VOU means. Can you explain?" — rather than guessing or misrouting.
+
+**Term disambiguation (same name, different meanings):**
+When a term exists in both general knowledge and company glossary:
+- Router checks session context (what project/topic has the user been discussing)
+- If still ambiguous, Orbit asks: "Did you mean [company term] or the general [term]?"
+- The `disambiguation` field in glossary disambiguates: "talentengine in our CI/CD context = automated testing service"
+
+**Typo correction:**
+Terms may be misspelled. Router handles this transparently:
+- Exact match → use directly
+- No exact match → fuzzy match (Levenshtein distance ≤ 2)
+- One candidate found → use silently (no friction)
+- Multiple candidates → ask user: "Did you mean [A] or [B]?"
+
+**Learning from failures:**
+When routing fails and a term is involved:
+1. Unknown term → Orbit asks user: "Should I add this to the glossary?"
+2. User corrects Orbit's understanding → Orbit proposes updating the glossary
+3. New Skills deployed → Router extracts new terms from Skill definitions → auto-suggest to add
 
 ---
 
